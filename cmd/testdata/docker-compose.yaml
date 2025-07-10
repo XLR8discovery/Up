@@ -1,0 +1,286 @@
+version: "3.4"
+services:
+  authservice:
+    command:
+      - authservice
+      - run
+      - --defaults=dev
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_S3: "true"
+      OSSUP_SATELLITE: satellite-api
+      OSS_ALLOWED_SATELLITES: 12whfK1EDvHJtajBiAUeajQLYcWqxcQmdYQU5zX5cCf6bAxfgu4@satellite-api:7777
+      OSS_AUTH_TOKEN: super-secret
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_ENDPOINT: http://localhost:9999
+      OSS_KV_BACKEND: badger://
+      OSS_LISTEN_ADDR: 0.0.0.0:8888
+      OSS_LOG_LEVEL: debug
+      OSS_METRICS_APP_SUFFIX: sim
+      OSSUP_ROLE: authservice
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/edge:1.36.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8888
+        published: 8888
+        protocol: tcp
+  cockroach:
+    command:
+      - start-single-node
+      - --insecure
+      - --http-addr
+      - 127.0.0.1:1234
+    image: cockroachdb/cockroach
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 26257
+        published: 26257
+        protocol: tcp
+  gateway-mt:
+    command:
+      - gateway-mt
+      - run
+      - --defaults=dev
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_S3: "true"
+      OSSUP_SATELLITE: satellite-api
+      OSS_AUTH_BASE_URL: http://authservice:8888
+      OSS_AUTH_TOKEN: super-secret
+      OSS_AUTH_URL: http://authservice:8888
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_LOG_LEVEL: debug
+      OSS_METRICS_APP_SUFFIX: sim
+      OSS_SERVER_ADDRESS: 0.0.0.0:9999
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/edge:1.36.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 9999
+        published: 9999
+        protocol: tcp
+  linksharing:
+    command:
+      - linksharing
+      - run
+      - --defaults=dev
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_S3: "true"
+      OSSUP_SATELLITE: satellite-api
+      OSS_AUTH_SERVICE_BASE_URL: http://authservice:8888
+      OSS_AUTH_SERVICE_TOKEN: super-secret
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_PUBLIC_URL: http://linksharing:9090,http://localhost:9090
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/edge:1.36.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: 9090
+        protocol: tcp
+  redis:
+    image: redis:6.0.9
+    networks:
+      default: null
+  satellite-admin:
+    command:
+      - satellite
+      - run
+      - admin
+      - --defaults=dev
+      - --identity-dir=/var/lib/oss/identities/1
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_SATELLITE: satellite-api
+      OSS_ADMIN_ADDRESS: 0.0.0.0:8080
+      OSS_ADMIN_STATIC_DIR: /var/lib/oss/oss/satellite/admin/ui/build
+      OSS_CONSOLE_AUTH_TOKEN: my-suppa-secret-key
+      OSS_DATABASE: cockroach://root@cockroach:26257/master?sslmode=disable
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_IDENTITY_DIR: /var/lib/oss/identities/1
+      OSS_LIVE_ACCOUNTING_STORAGE_BACKEND: redis://redis:6379?db=1
+      OSS_LOG_LEVEL: debug
+      OSS_METAINFO_DATABASE_URL: cockroach://root@cockroach:26257/metainfo?sslmode=disable
+      OSS_METRICS_APP_SUFFIX: sim
+      OSS_ORDERS_ENCRYPTION_KEYS: 0100000000000000=0100000000000000000000000000000000000000000000000000000000000000
+      OSS_PAYMENTS_BILLING_CONFIG_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_AUTH_IDENTIFIER: us1
+      OSS_PAYMENTS_OSSSCAN_AUTH_SECRET: us1secret
+      OSS_PAYMENTS_OSSSCAN_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_ENDPOINT: http://ossscan:12000
+      OSSUP_ROLE: satellite-admin
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: 9080
+        protocol: tcp
+  satellite-api:
+    command:
+      - satellite
+      - run
+      - api
+      - --defaults=dev
+      - --identity-dir=/var/lib/oss/identities/1
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_SATELLITE: satellite-api
+      OSS_ADDRESS: 0.0.0.0:7777
+      OSS_CONSOLE_ADDRESS: 0.0.0.0:10000
+      OSS_CONSOLE_AUTH_TOKEN_SECRET: my-suppa-secret-key
+      OSS_CONSOLE_GATEWAY_CREDENTIALS_REQUEST_URL: http://localhost:8888
+      OSS_CONSOLE_LINKSHARING_URL: http://localhost:9090
+      OSS_CONSOLE_OPEN_REGISTRATION_ENABLED: "true"
+      OSS_CONSOLE_RATE_LIMIT_BURST: "10000"
+      OSS_CONSOLE_STATIC_DIR: /var/lib/oss/oss/web/satellite/
+      OSS_DATABASE: cockroach://root@cockroach:26257/master?sslmode=disable
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_IDENTITY_DIR: /var/lib/oss/identities/1
+      OSS_LIVE_ACCOUNTING_STORAGE_BACKEND: redis://redis:6379?db=0
+      OSS_LOG_LEVEL: debug
+      OSS_MAIL_FROM: OSS <oss-up@xlr8d.io>
+      OSS_MAIL_SMTP_SERVER_ADDRESS: smtp.gmail.com:587
+      OSS_MAIL_TEMPLATE_PATH: /var/lib/oss/oss/web/satellite/static/emails/
+      OSS_METAINFO_DATABASE_URL: cockroach://root@cockroach:26257/metainfo?sslmode=disable
+      OSS_METAINFO_RATE_LIMITER_ENABLED: "false"
+      OSS_METRICS_APP_SUFFIX: sim
+      OSS_ORDERS_ENCRYPTION_KEYS: 0100000000000000=0100000000000000000000000000000000000000000000000000000000000000
+      OSS_PAYMENTS_BILLING_CONFIG_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_AUTH_IDENTIFIER: us1
+      OSS_PAYMENTS_OSSSCAN_AUTH_SECRET: us1secret
+      OSS_PAYMENTS_OSSSCAN_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_ENDPOINT: http://ossscan:12000
+      OSSUP_ROLE: satellite-api
+      OSS_SERVER_ADDRESS: satellite-api:7777
+      OSS_SERVER_EXTENSIONS_REVOCATION: "false"
+      OSS_SERVER_REVOCATION_DBURL: redis://redis:6379?db=1
+      OSS_SERVER_USE_PEER_CA_WHITELIST: "false"
+      OSS_WAIT_FOR_DB: "true"
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 7777
+        published: 7777
+        protocol: tcp
+      - mode: ingress
+        target: 10000
+        published: 10000
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /home/elek/go/bin/satellite
+        target: /var/lib/oss/go/bin/satellite
+        bind:
+          create_host_path: true
+  satellite-core:
+    command:
+      - satellite
+      - run
+      - --defaults=dev
+      - --identity-dir=/var/lib/oss/identities/1
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_SATELLITE: satellite-api
+      OSS_DATABASE: cockroach://root@cockroach:26257/master?sslmode=disable
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_IDENTITY_DIR: /var/lib/oss/identities/1
+      OSS_LIVE_ACCOUNTING_STORAGE_BACKEND: redis://redis:6379?db=1
+      OSS_LOG_LEVEL: debug
+      OSS_MAIL_FROM: OSS <oss-up@xlr8d.io>
+      OSS_MAIL_SMTP_SERVER_ADDRESS: smtp.gmail.com:587
+      OSS_MAIL_TEMPLATE_PATH: /var/lib/oss/oss/web/satellite/static/emails/
+      OSS_METAINFO_DATABASE_URL: cockroach://root@cockroach:26257/metainfo?sslmode=disable
+      OSS_METRICS_APP_SUFFIX: sim
+      OSS_ORDERS_ENCRYPTION_KEYS: 0100000000000000=0100000000000000000000000000000000000000000000000000000000000000
+      OSS_PAYMENTS_BILLING_CONFIG_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_AUTH_IDENTIFIER: us1
+      OSS_PAYMENTS_OSSSCAN_AUTH_SECRET: us1secret
+      OSS_PAYMENTS_OSSSCAN_DISABLE_LOOP: "false"
+      OSS_PAYMENTS_OSSSCAN_ENDPOINT: http://ossscan:12000
+      OSSUP_ROLE: satellite-core
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+  storagenode:
+    command:
+      - storagenode
+      - run
+      - --defaults=dev
+    deploy:
+      replicas: 10
+    environment:
+      OSSUP_AUTHSERVICE: http://authservice:8888
+      OSSUP_SATELLITE: satellite-api
+      OSS_CONSOLE_STATIC_DIR: /var/lib/oss/web/storagenode
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_IDENTITY_DIR: /var/lib/oss/.local/share/oss/identity/storagenode/
+      OSS_LOG_LEVEL: debug
+      OSS_METRICS_APP_SUFFIX: sim
+      OSS_OPERATOR_EMAIL: storage9@mail.test
+      OSS_OPERATOR_WALLET: "0x0123456789012345678901234567890123456789"
+      OSSUP_ROLE: storagenode
+      OSS_SERVER_EXTENSIONS_REVOCATION: "false"
+      OSS_SERVER_USE_PEER_CA_WHITELIST: "false"
+      OSS_STORAGE2_MONITOR_MINIMUM_DISK_SPACE: "0"
+      OSS_STORAGE2_TRUST_SOURCES: 12whfK1EDvHJtajBiAUeajQLYcWqxcQmdYQU5zX5cCf6bAxfgu4@satellite-api:7777
+      OSS_STORAGE_ALLOCATED_DISK_SPACE: 1G
+      OSS_VERSION_SERVER_ADDRESS: http://versioncontrol.invalid:8080
+      OSS_WAIT_FOR_SATELLITE: "true"
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+  uplink:
+    command:
+      - /usr/bin/sleep
+      - infinity
+    environment:
+      OSSUP_ROLE: uplink
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+  versioncontrol:
+    command:
+      - versioncontrol
+      - run
+    environment:
+      BINARY_GATEWAY_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      BINARY_IDENTITY_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      BINARY_SATELLITE_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      BINARY_STORAGENODE_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      BINARY_STORAGENODE_UPDATER_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      BINARY_UPLINK_ROLLOUT_SEED: "0000000000000000000000000000000000000000000000000000000000000001"
+      DEFAULTS: dev
+      OSS_DEBUG_ADDR: 0.0.0.0:11111
+      OSS_DEFAULTS: dev
+      OSS_LOG_LEVEL: debug
+      OSS_METRICS_APP_SUFFIX: sim
+    image: img.dev.xlr8d.io/ossup/oss:1.64.1
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: 7070
+        protocol: tcp
